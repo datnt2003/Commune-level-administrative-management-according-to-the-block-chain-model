@@ -255,7 +255,7 @@ def new_transaction():
         db.session.commit()
 
         flash('Transaction sent for approval.')
-        return redirect(url_for('home'))
+        return redirect(url_for('user_transactions'))  # Chuyển hướng về user_transactions thay vì home
     return render_template('create_transaction.html')
 
 
@@ -290,9 +290,8 @@ def view_news():
 
 @app.route('/')
 def home():
-    latest_news = News.query.order_by(News.timestamp.desc()).limit(5).all()
+    latest_news = News.query.order_by(News.timestamp.desc()).limit(6).all()
     return render_template('home.html', latest_news=latest_news)
-
 
 def admin_required(func):
     @wraps(func)
