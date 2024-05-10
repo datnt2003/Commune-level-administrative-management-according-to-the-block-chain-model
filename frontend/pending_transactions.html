@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Pending Transactions{% endblock %}
+
+{% block content %}
+<h2>Pending Transactions</h2>
+<form method="POST">
+    {% for transaction in transactions %}
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Transaction {{ transaction.id }}</h5>
+            <p class="card-text">Sender: {{ transaction.sender }}</p>
+            <p class="card-text">Recipient: {{ transaction.recipient }}</p>
+            <p class="card-text">Details: {{ transaction.cccd_details }}</p>
+            <p class="card-text">Timestamp: {{ transaction.timestamp }}</p>
+            <button type="submit" name="action" value="approve" class="btn btn-success">Approve</button>
+            <button type="submit" name="action" value="reject" class="btn btn-danger">Reject</button>
+            <input type="hidden" name="tx_id" value="{{ transaction.id }}">
+        </div>
+    </div>
+    {% endfor %}
+</form>
+{% endblock %}

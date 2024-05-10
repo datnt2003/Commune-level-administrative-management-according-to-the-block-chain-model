@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Left Column: Latest News -->
+    <div class="col-lg-8">
+        <div class="jumbotron bg-light">
+            <h1 class="display-4">Welcome to Blockchain App, {{ current_user.username }}</h1>
+            {% if current_user.is_authenticated %}
+                <p class="lead">Use the navigation bar above to access features like mining blocks and creating transactions.</p>
+            {% else %}
+                <p class="lead">Please <a href="{{ url_for('login') }}">login</a> or <a href="{{ url_for('register') }}">register</a> to get started.</p>
+            {% endif %}
+        </div>
+
+        <!-- Latest News Section -->
+        <h2 class="text-center mb-4">Latest News</h2>
+        {% if latest_news %}
+            {% for news in latest_news %}
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h2>{{ news.title }}</h2>
+                </div>
+                <div class="card-body">
+                    <p>{{ news.content }}</p>
+                    <p><small>By {{ news.author }} at {{ news.timestamp }}</small></p>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="text-center">No news available.</p>
+        {% endif %}
+    </div>
+
+    <!-- Right Column: About Section -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header text-center">
+                <h2>About Blockchain App</h2>
+            </div>
+            <div class="card-body">
+                <p>This is a decentralized application that allows you to mine blocks, create and view transactions, and share news. Features include:</p>
+                <ul>
+                    <li>Mining new blocks</li>
+                    <li>Creating new transactions</li>
+                    <li>Viewing the entire blockchain</li>
+                    <li>Posting and viewing news</li>
+                    <li>Admin-only features for transaction management</li>
+                </ul>
+                <p>We hope you find it useful and engaging!</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

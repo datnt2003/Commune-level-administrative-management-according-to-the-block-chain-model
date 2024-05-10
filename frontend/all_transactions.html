@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}All Transactions{% endblock %}
+
+{% block content %}
+<h1 class="text-center">All Transactions</h1>
+<table class="table table-striped table-hover">
+    <thead class="thead-dark">
+        <tr>
+            <th>Block Index</th>
+            <th>Sender</th>
+            <th>Recipient</th>
+            <th>CCCD Details</th>
+            <th>Timestamp</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for transaction in transactions %}
+        <tr>
+            <td>{{ transaction.block_index }}</td>
+            <td>{{ transaction.sender }}</td>
+            <td>{{ transaction.recipient }}</td>
+            <td>{{ transaction.cccd_details }}</td>
+            <td>{{ transaction.timestamp }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<a href="{{ url_for('home') }}" class="btn btn-secondary">Back to Home</a>
+{% endblock %}
