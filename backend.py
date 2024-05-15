@@ -8,23 +8,15 @@ from functools import wraps
 import hashlib
 import json
 from sqlalchemy.engine.reflection import Inspector
-from jinja2 import Environment
 from datetime import datetime
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 app = Flask(__name__, template_folder='frontend')
 app.config['SECRET_KEY'] = 'a'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blockchain.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-
-def your_date_filter_function(value, format='%Y-%m-%d %H:%M:%S'):
-    """Convert a timestamp (float) to a formatted date string."""
-    date = datetime.fromtimestamp(value)
-    return date.strftime(format)
-
-# Đăng ký bộ lọc này trong Jinja environment của Flask
-app.jinja_env.filters['date'] = your_date_filter_function
-
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
@@ -32,7 +24,21 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+def your_date_filter_function(value, format='%Y-%m-%d %H:%M:%S'):
+    date = datetime.fromtimestamp(value)
+    return date.strftime(format)
 
+app.jinja_env.filters['date'] = your_date_filter_function
+
+def admin_required(func):
+    @wraps(func)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_admin:
+            abort(403)  # Forbidden
+        return func(*args, **kwargs)
+    return decorated_function
+
+# Models
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -44,7 +50,6 @@ class User(UserMixin, db.Model):
         self.password_hash = password_hash
         self.is_admin = is_admin
 
-
 class Block(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     index = db.Column(db.Integer, nullable=False)
@@ -53,23 +58,22 @@ class Block(db.Model):
     proof = db.Column(db.Integer, nullable=False)
     previous_hash = db.Column(db.String(64), nullable=False)
 
-
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sender = db.Column(db.String(80), nullable=False)
     recipient = db.Column(db.String(80), nullable=False)
-    cccd_details = db.Column(db.Text, nullable=False)
+    cccd_details = db.Column(db.Text, nullable=True)
+    passport_details = db.Column(db.Text, nullable=True)
     block_id = db.Column(db.Integer, db.ForeignKey('block.id'), nullable=False)
     block = db.relationship('Block', backref=db.backref('transactions_list', lazy=True))
-
 
 class PendingTransaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sender = db.Column(db.String(80), nullable=False)
     recipient = db.Column(db.String(80), nullable=False)
-    cccd_details = db.Column(db.Text, nullable=False)
+    cccd_details = db.Column(db.Text, nullable=True)
+    passport_details = db.Column(db.Text, nullable=True)
     timestamp = db.Column(db.Float, default=time, nullable=False)
-
 
 class News(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -78,7 +82,6 @@ class News(db.Model):
     author = db.Column(db.String(80), nullable=False)
     timestamp = db.Column(db.Float, nullable=False)
 
-
 class Blockchain:
     def __init__(self):
         self.current_transactions = []
@@ -86,7 +89,6 @@ class Blockchain:
         self.load_chain()
 
     def load_chain(self):
-        """Load the chain from the database."""
         blocks = Block.query.order_by(Block.index).all()
         for block in blocks:
             self.chain.append({
@@ -100,7 +102,6 @@ class Blockchain:
             self.new_block(previous_hash='1', proof=100)
 
     def new_block(self, proof, previous_hash=None):
-        """Create a new block and add it to the chain."""
         block = {
             'index': len(self.chain) + 1,
             'timestamp': time(),
@@ -117,56 +118,52 @@ class Blockchain:
 
         for tx in self.current_transactions:
             new_transaction = Transaction(sender=tx['sender'], recipient=tx['recipient'],
-                                          cccd_details=json.dumps(tx['cccd_details']),
+                                          cccd_details=json.dumps(tx['cccd_details']) if tx['cccd_details'] else None,
+                                          passport_details=json.dumps(tx['passport_details']) if tx['passport_details'] else None,
                                           block_id=new_block.id)
             db.session.add(new_transaction)
 
         db.session.commit()
-
         self.current_transactions = []
         self.chain.append(block)
         return block
 
-    def new_transaction(self, sender, recipient, cccd_details):
-        """Add a new transaction to the list of current transactions."""
+    def new_transaction(self, sender, recipient, cccd_details=None, passport_details=None):
         self.current_transactions.append({
             'sender': sender,
             'recipient': recipient,
             'cccd_details': cccd_details,
+            'passport_details': passport_details
         })
         return self.last_block['index'] + 1
 
     @staticmethod
     def hash(block):
-        """Create a SHA-256 hash of a block."""
         block_string = json.dumps(block, sort_keys=True).encode()
         return hashlib.sha256(block_string).hexdigest()
 
     @property
     def last_block(self):
-        """Return the last block in the chain."""
         return self.chain[-1]
 
     def proof_of_work(self, last_proof):
-        """Simple Proof of Work Algorithm."""
         proof = 0
-        while self.valid_proof(last_proof, proof) is False:
+        while not self.valid_proof(last_proof, proof):
             proof += 1
         return proof
 
     @staticmethod
     def valid_proof(last_proof, proof):
-        """Validates the Proof: Does hash(last_proof, proof) contain leading 4 zeroes?"""
         guess = f'{last_proof}{proof}'.encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
         return guess_hash[:4] == "0000"
 
-
+# User loader
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-
+# Routes
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -179,13 +176,11 @@ def login():
         flash('Invalid username or password')
     return render_template('login.html')
 
-
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
-
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -203,7 +198,6 @@ def register():
         return redirect(url_for('login'))
     return render_template('register.html')
 
-
 @app.route('/mine', methods=['GET'])
 @login_required
 def mine():
@@ -212,13 +206,11 @@ def mine():
         last_proof = last_block['proof']
         proof = blockchain.proof_of_work(last_proof)
 
-        # Reward the miner by adding a reward transaction
         blockchain.new_transaction(
             sender="0",
             recipient=current_user.username,
             cccd_details={"note": "Reward for mining"}
         )
-
         previous_hash = blockchain.hash(last_block)
         block = blockchain.new_block(proof, previous_hash)
 
@@ -231,14 +223,12 @@ def mine():
         }
         return jsonify(response), 200
     except Exception as e:
-        # Log the error and provide a generic error message
         app.logger.error(f"Error during mining: {str(e)}")
         return jsonify({"message": "An error occurred during mining"}), 500
 
-
-@app.route('/transactions/new', methods=['GET', 'POST'])
+@app.route('/transactions/new/cccd', methods=['GET', 'POST'])
 @login_required
-def new_transaction():
+def new_cccd_transaction():
     if request.method == 'POST':
         cccd_details = {
             'full_name': request.form['full_name'],
@@ -249,78 +239,42 @@ def new_transaction():
         sender = request.form['sender']
         recipient = request.form['recipient']
 
-        # Add the transaction to the pending list
-        new_pending_tx = PendingTransaction(sender=sender, recipient=recipient, cccd_details=json.dumps(cccd_details))
+        new_pending_tx = PendingTransaction(
+            sender=sender, 
+            recipient=recipient, 
+            cccd_details=json.dumps(cccd_details)
+        )
         db.session.add(new_pending_tx)
         db.session.commit()
 
-        flash('Transaction sent for approval.')
-        return redirect(url_for('user_transactions'))  # Chuyển hướng về user_transactions thay vì home
-    return render_template('create_transaction.html')
+        flash('CCCD transaction sent for approval.')
+        return redirect(url_for('user_transactions'))
+    return render_template('create_cccd_transaction.html')
 
-
-@app.route('/chain', methods=['GET'])
+@app.route('/transactions/new/passport', methods=['GET', 'POST'])
 @login_required
-def full_chain():
-    response = {
-        'chain': blockchain.chain,
-        'length': len(blockchain.chain),
-    }
-    return jsonify(response)
-
-
-@app.route('/news/post', methods=['GET', 'POST'])
-@login_required
-def post_news():
+def new_passport_transaction():
     if request.method == 'POST':
-        title = request.form['title']
-        content = request.form['content']
-        new_post = News(title=title, content=content, author=current_user.username, timestamp=time())
-        db.session.add(new_post)
+        passport_details = {
+            'full_name': request.form['passport_full_name'],
+            'date_of_birth': request.form['passport_date_of_birth'],
+            'address': request.form['passport_address'],
+            'passport_number': request.form['passport_number']
+        }
+        sender = request.form['sender']
+        recipient = request.form['recipient']
+
+        new_pending_tx = PendingTransaction(
+            sender=sender, 
+            recipient=recipient, 
+            passport_details=json.dumps(passport_details)
+        )
+        db.session.add(new_pending_tx)
         db.session.commit()
-        return redirect(url_for('view_news'))
-    return render_template('post_news.html')
 
-
-@app.route('/news', methods=['GET'])
-def view_news():
-    news_feed = News.query.order_by(News.timestamp.desc()).all()
-    return render_template('view_news.html', news_feed=news_feed)
-
-
-@app.route('/')
-def home():
-    latest_news = News.query.order_by(News.timestamp.desc()).limit(6).all()
-    return render_template('home.html', latest_news=latest_news)
-
-def admin_required(func):
-    @wraps(func)
-    def decorated_function(*args, **kwargs):
-        if current_user.is_admin:
-            return func(*args, **kwargs)
-        else:
-            abort(403)  # Forbidden
-    return decorated_function
-
-
-@app.route('/transactions/all', methods=['GET'])
-@login_required
-@admin_required
-def view_all_transactions():
-    all_transactions = []
-    blocks = Block.query.all()
-    for block in blocks:
-        transactions = Transaction.query.filter_by(block_id=block.id).all()
-        for tx in transactions:
-            all_transactions.append({
-                'sender': tx.sender,
-                'recipient': tx.recipient,
-                'cccd_details': json.loads(tx.cccd_details),
-                'block_index': block.index,
-                'timestamp': block.timestamp
-            })
-    return render_template('all_transactions.html', transactions=all_transactions)
-
+        flash('Passport transaction sent for approval.')
+        return redirect(url_for('user_transactions'))
+    return render_template('create_passport_transaction.html')
 
 @app.route('/transactions/pending', methods=['GET', 'POST'])
 @login_required
@@ -333,22 +287,20 @@ def view_pending_transactions():
         pending_tx = PendingTransaction.query.get(tx_id)
 
         if action == 'approve' and pending_tx:
-            # Add the approved transaction to the blockchain current transactions
             blockchain.new_transaction(
                 sender=pending_tx.sender,
                 recipient=pending_tx.recipient,
-                cccd_details=json.loads(pending_tx.cccd_details)
+                cccd_details=json.loads(pending_tx.cccd_details) if pending_tx.cccd_details else None,
+                passport_details=json.loads(pending_tx.passport_details) if pending_tx.passport_details else None
             )
 
-            # Mine a block if there are enough transactions or based on a condition
-            if len(blockchain.current_transactions) >= 1:  # You can adjust this threshold
+            if len(blockchain.current_transactions) >= 1:  # Adjust this threshold as needed
                 last_proof = blockchain.last_block['proof']
                 proof = blockchain.proof_of_work(last_proof)
                 previous_hash = blockchain.hash(blockchain.last_block)
                 new_block = blockchain.new_block(proof, previous_hash)
                 flash(f'Block {new_block["index"]} is mined to include approved transactions.')
 
-            # Delete the pending transaction after it is added to the blockchain
             db.session.delete(pending_tx)
             db.session.commit()
             flash(f'Transaction {tx_id} approved.')
@@ -365,29 +317,30 @@ def view_pending_transactions():
 @app.route('/transactions/user', methods=['GET'])
 @login_required
 def user_transactions():
-    # Fetch approved transactions associated with the user
     approved_transactions = []
     user_blocks = Block.query.join(Transaction).filter(
         (Transaction.sender == current_user.username) | (Transaction.recipient == current_user.username)
     ).all()
 
     for block in user_blocks:
+        block_transactions = []
         transactions = Transaction.query.filter_by(block_id=block.id).filter(
             (Transaction.sender == current_user.username) | (Transaction.recipient == current_user.username)
         ).all()
         for tx in transactions:
-            approved_transactions.append({
+            block_transactions.append({
                 'id': tx.id,
                 'sender': tx.sender,
                 'recipient': tx.recipient,
-                'cccd_details': json.loads(tx.cccd_details),
-                'block': {
-                    'index': block.index,
-                    'timestamp': block.timestamp
-                }
+                'cccd_details': json.loads(tx.cccd_details) if tx.cccd_details else None,
+                'passport_details': json.loads(tx.passport_details) if tx.passport_details else None
             })
+        approved_transactions.append({
+            'index': block.index,
+            'timestamp': block.timestamp,
+            'transactions': block_transactions
+        })
 
-    # Fetch pending transactions associated with the user
     pending_transactions = []
     user_pending = PendingTransaction.query.filter(
         (PendingTransaction.sender == current_user.username) | (PendingTransaction.recipient == current_user.username)
@@ -398,7 +351,8 @@ def user_transactions():
             'id': tx.id,
             'sender': tx.sender,
             'recipient': tx.recipient,
-            'cccd_details': json.loads(tx.cccd_details),
+            'cccd_details': json.loads(tx.cccd_details) if tx.cccd_details else None,
+            'passport_details': json.loads(tx.passport_details) if tx.passport_details else None,
             'timestamp': tx.timestamp
         })
 
@@ -406,16 +360,118 @@ def user_transactions():
                            approved_transactions=approved_transactions,
                            pending_transactions=pending_transactions)
 
+
+@app.route('/transactions/all', methods=['GET'])
+@login_required
+@admin_required
+def view_all_transactions():
+    all_transactions = []
+    blocks = Block.query.all()
+    for block in blocks:
+        transactions = Transaction.query.filter_by(block_id=block.id).all()
+        for tx in transactions:
+            all_transactions.append({
+                'sender': tx.sender,
+                'recipient': tx.recipient,
+                'cccd_details': json.loads(tx.cccd_details) if tx.cccd_details else None,
+                'passport_details': json.loads(tx.passport_details) if tx.passport_details else None,
+                'block_index': block.index,
+                'timestamp': block.timestamp
+            })
+    return render_template('all_transactions.html', transactions=all_transactions)
+
+@app.route('/chain', methods=['GET'])
+@login_required
+def full_chain():
+    response = {
+        'chain': blockchain.chain,
+        'length': len(blockchain.chain),
+    }
+    return jsonify(response)
+
+@app.route('/news/post', methods=['GET', 'POST'])
+@login_required
+def post_news():
+    if request.method == 'POST':
+        title = request.form['title']
+        content = request.form['content']
+        new_post = News(title=title, content=content, author=current_user.username, timestamp=time())
+        db.session.add(new_post)
+        db.session.commit()
+        return redirect(url_for('view_news'))
+    return render_template('post_news.html')
+
+@app.route('/news', methods=['GET'])
+def view_news():
+    news_feed = News.query.order_by(News.timestamp.desc()).all()
+    return render_template('view_news.html', news_feed=news_feed)
+
+@app.route('/')
+def home():
+    latest_news = News.query.order_by(News.timestamp.desc()).limit(6).all()
+    return render_template('home.html', latest_news=latest_news)
+
+@app.route('/search', methods=['GET'])
+@login_required
+def search_transactions():
+    query = request.args.get('query')
+    if not query:
+        flash('Please enter a search term', 'warning')
+        return redirect(url_for('user_transactions'))
+
+    # Tìm tất cả các giao dịch để tính toán mức độ tương đồng
+    all_transactions = Transaction.query.all()
+
+    # Chuẩn bị dữ liệu văn bản
+    documents = []
+    for tx in all_transactions:
+        document = f"{tx.sender} {tx.recipient} {tx.cccd_details or ''} {tx.passport_details or ''}".strip()
+        if document:  # Chỉ thêm tài liệu nếu không trống
+            documents.append(document)
+
+    if not documents:  # Kiểm tra xem có tài liệu nào không
+        flash('No transactions found to search through.', 'warning')
+        return redirect(url_for('user_transactions'))
+
+    # Chuyển đổi truy vấn và dữ liệu giao dịch thành vector TF-IDF
+    vectorizer = TfidfVectorizer(stop_words='english').fit_transform([query] + documents)
+    vectors = vectorizer.toarray()
+
+    # Tính toán mức độ tương đồng cosine giữa truy vấn và các giao dịch
+    cosine_similarities = cosine_similarity(vectors[0:1], vectors[1:]).flatten()
+
+    # Lấy các giao dịch có mức độ tương đồng cao nhất
+    most_similar_indices = cosine_similarities.argsort()[-10:][::-1]
+    similar_transactions = [all_transactions[i] for i in most_similar_indices]
+
+    # Phân loại các giao dịch theo block
+    approved_transactions = []
+    for tx in similar_transactions:
+        block = Block.query.get(tx.block_id)
+        block_transactions = {
+            'id': tx.id,
+            'sender': tx.sender,
+            'recipient': tx.recipient,
+            'cccd_details': json.loads(tx.cccd_details) if tx.cccd_details else None,
+            'passport_details': json.loads(tx.passport_details) if tx.passport_details else None,
+            'block': {
+                'index': block.index,
+                'timestamp': block.timestamp
+            }
+        }
+        approved_transactions.append(block_transactions)
+
+    return render_template('search_results.html', approved_transactions=approved_transactions, query=query)
+
 if __name__ == '__main__':
     with app.app_context():
-        # Ensure all migrations are up to date before starting the app
+        db.drop_all()
         db.create_all()
         engine = db.engine
         inspector = Inspector.from_engine(engine)
         if inspector.has_table('block'):
             db.create_all()
 
-        # Create an admin user if not already created
         admin_user = User.query.filter_by(username='admin').first()
         if not admin_user:
             hashed_password = generate_password_hash('admin', method='pbkdf2:sha256')
@@ -423,7 +479,6 @@ if __name__ == '__main__':
             db.session.add(admin_user)
             db.session.commit()
 
-        # Initialize the blockchain
         blockchain = Blockchain()
 
     app.run(host='0.0.0.0', port=5001, debug=True)

@@ -11,7 +11,13 @@
             <h5 class="card-title">Transaction {{ transaction.id }}</h5>
             <p class="card-text">Sender: {{ transaction.sender }}</p>
             <p class="card-text">Recipient: {{ transaction.recipient }}</p>
-            <p class="card-text">Details: {{ transaction.cccd_details }}</p>
+            {% if transaction.cccd_details %}
+                <p class="card-text">CCCD Details: {{ transaction.cccd_details | tojson }}</p>
+            {% endif %}
+
+            {% if transaction.passport_details %}
+                <p class="card-text">Passport Details: {{ transaction.passport_details | tojson }}</p>
+            {% endif %}
             <p class="card-text">Timestamp: {{ transaction.timestamp }}</p>
             <button type="submit" name="action" value="approve" class="btn btn-success">Approve</button>
             <button type="submit" name="action" value="reject" class="btn btn-danger">Reject</button>

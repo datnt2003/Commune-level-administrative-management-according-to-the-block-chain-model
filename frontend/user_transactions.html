@@ -32,27 +32,33 @@
         
         <div class="transaction-header">
             <h2>Giao dịch được phê duyệt</h2>
-            <a href="{{ url_for('new_transaction') }}" class="btn btn-primary btn-create">Tạo mới CCCD</a>
+            <a href="{{ url_for('new_cccd_transaction') }}" class="btn btn-primary btn-create">Tạo mới CCCD</a>
         </div>
         
         {% if approved_transactions %}
-            <div class="card-deck">
-                {% for tx in approved_transactions %}
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Số khối: {{ tx.block.index }}</h5>
-                            <p class="card-text">
-                                <strong>Người gửi:</strong> {{ tx.sender }}<br>
-                                <strong>Người nhận:</strong> {{ tx.recipient }}<br>
-                                <strong>Thông tin CCCD:</strong> {{ tx.cccd_details }}<br>
-                                <strong>Thời gian:</strong> {{ tx.block.timestamp|date('%Y-%m-%d %H:%M:%S') }}
-                            </p>
-                        </div>
+            {% for block in approved_transactions %}
+                <div class="card">
+                    <div class="card-header">
+                        Số khối: {{ block.index }} - Thời gian: {{ block.timestamp|date('%Y-%m-%d %H:%M:%S') }}
                     </div>
-                {% endfor %}
-            </div>
+                    <div class="card-body">
+                        {% for tx in block.transactions %}
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <p class="card-text">
+                                        <strong>Người gửi:</strong> {{ tx.sender }}<br>
+                                        <strong>Người nhận:</strong> {{ tx.recipient }}<br>
+                                        <strong>Thông tin CCCD:</strong> {{ tx.cccd_details }}<br>
+                                        <strong>Thông tin Hộ Chiếu:</strong> {{ tx.passport_details }}<br>
+                                    </p>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
         {% else %}
-            <p>No approved transactions found.</p>
+            <p>Không tìm thấy giao dịch đã phê duyệt.</p>
         {% endif %}
         
         <h2 class="mt-5">Giao dịch đang chờ xử lý</h2>
@@ -61,11 +67,12 @@
                 {% for tx in pending_transactions %}
                     <div class="card">
                         <div class="card-body">
-                            <h5 class="card-title">Pending Transaction ID: {{ tx.id }}</h5>
+                            <h5 class="card-title">ID Giao dịch đang chờ xử lý: {{ tx.id }}</h5>
                             <p class="card-text">
                                 <strong>Người gửi:</strong> {{ tx.sender }}<br>
                                 <strong>Người nhận:</strong> {{ tx.recipient }}<br>
                                 <strong>Thông tin CCCD:</strong> {{ tx.cccd_details }}<br>
+                                <strong>Thông tin Hộ Chiếu:</strong> {{ tx.passport_details }}<br>
                                 <strong>Thời gian:</strong> {{ tx.timestamp|date('%Y-%m-%d %H:%M:%S') }}
                             </p>
                         </div>
@@ -73,7 +80,7 @@
                 {% endfor %}
             </div>
         {% else %}
-            <p>Không có giao dịch nào được tìm thấy</p>
+            <p>Không tìm thấy giao dịch đang chờ xử lý.</p>
         {% endif %}
     </div>
 
