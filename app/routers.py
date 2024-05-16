@@ -49,11 +49,30 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        
+        fullname = request.form['fullname']
+        date_of_birth = request.form['date_of_birth']
+        phone = request.form['phone']
+        gender = request.form['gender']
+        # Chuyển đổi date_of_birth từ chuỗi sang đối tượng datetime.date
+        try:
+            date_of_birth = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Ngày sinh không hợp lệ. Vui lòng nhập lại.')
+            return redirect(url_for('register'))
+        
         if User.query.filter_by(username=username).first():
             flash('Username already exists!')
             return redirect(url_for('register'))
         hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
-        new_user = User(username=username, password_hash=hashed_password)
+        new_user = User(
+            username=username, 
+            password_hash=hashed_password, 
+            fullname = fullname, 
+            date_of_birth = date_of_birth, 
+            phone = phone, 
+            gender = gender
+        )
         db.session.add(new_user)
         db.session.commit()
         flash('User registered successfully!')
@@ -88,31 +107,87 @@ def mine():
         app.logger.error(f"Error during mining: {str(e)}")
         return jsonify({"message": "An error occurred during mining"}), 500
 
+import random
+import string
+
+def generate_unique_number(prefix, length=10):
+    while True:
+        number = prefix + ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
+        if not (PendingTransaction.query.filter_by(cccd_details=number).first() or
+                PendingTransaction.query.filter_by(passport_details=number).first() or
+                Transaction.query.filter_by(cccd_details=number).first() or
+                Transaction.query.filter_by(passport_details=number).first()):
+            return number
+
 @app.route('/transactions/new/cccd', methods=['GET', 'POST'])
 @login_required
+# def new_cccd_transaction():
+#     if request.method == 'POST':
+#         cccd_details = {
+#             'full_name': request.form['full_name'],
+#             'date_of_birth': request.form['date_of_birth'],
+#             'address': request.form['address'],
+            
+#         }
+#         sender = current_user.get_username()
+#         recipient = request.form['co_quan_tiep_nhan']
+
+#         new_pending_tx = PendingTransaction(
+#             sender=sender, 
+#             recipient=recipient, 
+#             cccd_details=json.dumps(cccd_details)
+#         )
+#         db.session.add(new_pending_tx)
+#         db.session.commit()
+
+#         flash('CCCD transaction sent for approval.')
+#         return redirect(url_for('user_transactions'))
+#     return render_template('create_cccd_transaction.html')
+
 def new_cccd_transaction():
     if request.method == 'POST':
-        cccd_details = {
-            'full_name': request.form['full_name'],
-            'date_of_birth': request.form['date_of_birth'],
-            'address': request.form['address'],
-            'cccd_number': request.form['cccd_number']
-        }
-        sender = request.form['sender']
-        recipient = request.form['recipient']
+        full_name = request.form['full_name']
+        date_of_birth = request.form['date_of_birth']
+        address = request.form['address']
+        gender = request.form['gender']
+        phone = request.form['phone']
+        request_text = request.form['request']
+        nationality = request.form['nationality']
+        religion = request.form.get('religion')
+        ethnicity = request.form['ethnicity']
+        cccd_number_old = request.form['cccd_number']
+        receiving_agency = request.form['receiving_agency']
 
-        new_pending_tx = PendingTransaction(
-            sender=sender, 
-            recipient=recipient, 
-            cccd_details=json.dumps(cccd_details)
+        # # Chuyển đổi date_of_birth từ chuỗi sang đối tượng datetime.date
+        # try:
+        #     date_of_birth = datetime.strptime(date_of_birth, '%Y-%m-%d').date()
+        # except ValueError:
+        #     flash('Ngày sinh không hợp lệ. Vui lòng nhập lại.')
+        #     return redirect(url_for('new_cccd_transaction'))
+
+        # Tạo giao dịch mới
+        new_tx = PendingTransaction(
+            sender=current_user.get_username(),
+            recipient=receiving_agency,
+            cccd_details=json.dumps({
+                "date_of_birth": date_of_birth,
+                "address": address,
+                "gender": gender,
+                "phone": phone,
+                "request": request_text,
+                "nationality": nationality,
+                "religion": religion,
+                "ethnicity": ethnicity,
+                "cccd_number": cccd_number_old
+            })
         )
-        db.session.add(new_pending_tx)
-        db.session.commit()
 
+        # Thêm vào cơ sở dữ liệu
+        db.session.add(new_tx)
+        db.session.commit()
         flash('CCCD transaction sent for approval.')
         return redirect(url_for('user_transactions'))
     return render_template('create_cccd_transaction.html')
-
 @app.route('/transactions/new/passport', methods=['GET', 'POST'])
 @login_required
 def new_passport_transaction():
@@ -120,15 +195,28 @@ def new_passport_transaction():
         passport_details = {
             'full_name': request.form['passport_full_name'],
             'date_of_birth': request.form['passport_date_of_birth'],
+            'gender': request.form['passport_gender'],
+            'nationality': request.form['passport_nationality'],
+            'ethnicity': request.form['passport_ethnicity'],
+            'religion': request.form['passport_religion'],
             'address': request.form['passport_address'],
-            'passport_number': request.form['passport_number']
+            'temp_address': request.form['passport_temp_address'],
+            'occupation': request.form['passport_occupation'],
+            'employer': request.form['passport_employer'],
+            'father_name': request.form['passport_father_name'],
+            'mother_name': request.form['passport_mother_name'],
+            'spouse_name': request.form['passport_spouse_name'],
+            'old_passport': request.form['passport_old_passport'],
+            'content': request.form['passport_content'],
+            'passport_number': generate_unique_number('HC'),
+            'phone': request.form['passport_phone'],
+            'email': request.form['passport_email']
         }
-        sender = request.form['sender']
-        recipient = request.form['recipient']
-
+        # sender = 
+        receiving_agency = request.form['receiving_agency']
         new_pending_tx = PendingTransaction(
-            sender=sender, 
-            recipient=recipient, 
+            sender=current_user.get_username(),
+            recipient=receiving_agency,
             passport_details=json.dumps(passport_details)
         )
         db.session.add(new_pending_tx)
@@ -142,7 +230,15 @@ def new_passport_transaction():
 @login_required
 @admin_required
 def view_pending_transactions():
-    pending_transactions = PendingTransaction.query.all()
+    filter_type = request.args.get('filter', 'all')
+    # Lấy danh sách giao dịch đang chờ xử lý từ cơ sở dữ liệu
+    if filter_type == 'cccd':
+        pending_transactions = PendingTransaction.query.filter(PendingTransaction.cccd_details.isnot(None)).all()
+    elif filter_type == 'passport':
+        pending_transactions = PendingTransaction.query.filter(PendingTransaction.passport_details.isnot(None)).all()
+    else:
+        pending_transactions = PendingTransaction.query.all()  # Thay thế bằng truy vấn thực tế của bạn
+
     if request.method == 'POST':
         action = request.form.get('action')
         tx_id = request.form.get('tx_id')
@@ -153,7 +249,8 @@ def view_pending_transactions():
                 sender=pending_tx.sender,
                 recipient=pending_tx.recipient,
                 cccd_details=json.loads(pending_tx.cccd_details) if pending_tx.cccd_details else None,
-                passport_details=json.loads(pending_tx.passport_details) if pending_tx.passport_details else None
+                passport_details=json.loads(pending_tx.passport_details) if pending_tx.passport_details else None, 
+                timestamp = pending_tx.timestamp
             )
 
             if len(blockchain.current_transactions) >= 1:  # Adjust this threshold as needed
@@ -173,8 +270,31 @@ def view_pending_transactions():
             flash(f'Transaction {tx_id} rejected.')
 
         return redirect(url_for('view_pending_transactions'))
-
+    for i in range(len(pending_transactions)):
+        pending_transactions[i].timestamp = datetime.fromtimestamp(pending_transactions[i].timestamp).strftime('%d/%m/%Y %H:%M:%S')
+    # print(pending_transactions)
+    # pending_transactions.timestamp = datetime.fromtimestamp(pending_transactions.timestamp)
     return render_template('pending_transactions.html', transactions=pending_transactions)
+@app.route('/transaction/<string:type_data>/<int:tx_id>', methods=['GET'])
+@login_required
+def transaction_detail(type_data, tx_id):
+    if type_data == "pending":
+        # Lấy giao dịch từ cơ sở dữ liệu dựa trên ID
+        transaction = PendingTransaction.query.get_or_404(tx_id)
+    else:
+        # Lấy giao dịch từ cơ sở dữ liệu dựa trên ID
+        transaction = Transaction.query.get_or_404(tx_id)
+    
+    # # Định dạng lại timestamp
+    transaction.timestamp = datetime.fromtimestamp(transaction.timestamp).strftime('%d/%m/%Y %H:%M:%S')
+    
+    # Giải mã JSON chi tiết CCCD hoặc Passport
+    if transaction.cccd_details :
+        transaction.cccd_details = json.loads(transaction.cccd_details)
+    if transaction.passport_details:
+        transaction.passport_details = json.loads(transaction.passport_details)
+    
+    return render_template('transaction_detail.html', transaction=transaction)
 
 @app.route('/transactions/user', methods=['GET'])
 @login_required
@@ -235,7 +355,8 @@ def user_transactions():
                     'cccd_details': json.loads(tx.cccd_details) if tx.cccd_details else None,
                     'passport_details': json.loads(tx.passport_details) if tx.passport_details else None,
                     'block_index': block.index,
-                    'timestamp': block.timestamp
+                    'timestamp': block.timestamp, 
+                    'id': tx.id
                 })
         return render_template('all_transactions.html', transactions=all_transactions)
 
@@ -254,7 +375,8 @@ def view_all_transactions():
                 'cccd_details': json.loads(tx.cccd_details) if tx.cccd_details else None,
                 'passport_details': json.loads(tx.passport_details) if tx.passport_details else None,
                 'block_index': block.index,
-                'timestamp': block.timestamp
+                'timestamp': block.timestamp, 
+                'id': tx.id
             })
     return render_template('all_transactions.html', transactions=all_transactions)
 

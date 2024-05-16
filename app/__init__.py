@@ -34,7 +34,11 @@ with app.app_context():
     admin_user = User.query.filter_by(username='admin').first()
     if not admin_user:
         hashed_password = generate_password_hash('admin', method='pbkdf2:sha256')
-        admin_user = User(username='admin', password_hash=hashed_password, is_admin=True)
+        admin_user = User(
+            username='admin', 
+            password_hash=hashed_password, 
+            is_admin=True
+        )
         db.session.add(admin_user)
         db.session.commit()
     

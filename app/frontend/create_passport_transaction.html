@@ -1,56 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đăng ký Hộ Chiếu</title>
-    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .container {
+            margin-top: 30px;
+        }
+
+        .form-group label {
+            font-weight: bold;
+        }
+    </style>
 </head>
+
 <body>
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h3 class="card-title mb-0">Passport Details</h3>
-                    </div>
-                    <div class="card-body">
-                        <form method="POST" action="{{ url_for('new_passport_transaction') }}">
-                            <div class="form-group">
-                                <label for="passport_full_name">Họ tên</label>
-                                <input type="text" id="passport_full_name" name="passport_full_name" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="passport_date_of_birth">Ngày tháng năm sinh</label>
-                                <input type="date" id="passport_date_of_birth" name="passport_date_of_birth" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="passport_address">Địa chỉ</label>
-                                <input type="text" id="passport_address" name="passport_address" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="passport_number">Số hộ chiếu</label>
-                                <input type="text" id="passport_number" name="passport_number" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="sender">Sender</label>
-                                <input type="text" id="sender" name="sender" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="recipient">Recipient</label>
-                                <input type="text" id="recipient" name="recipient" class="form-control" required>
-                            </div>
-                            <button type="submit" class="btn btn-primary btn-block">Submit</button>
-                        </form>
-                    </div>
-                </div>
+    <div class="container">
+        <h2 class="text-center">Đăng ký Hộ Chiếu</h2>
+        <form method="POST" action="{{ url_for('new_passport_transaction') }}">
+            <div class="form-group">
+                <label for="passport_full_name">Họ tên</label>
+                <input type="text" id="passport_full_name" name="passport_full_name" class="form-control" required>
             </div>
-        </div>
+            <div class="form-group">
+                <label for="passport_date_of_birth">Ngày tháng năm sinh</label>
+                <input type="date" id="passport_date_of_birth" name="passport_date_of_birth" class="form-control"
+                    required>
+            </div>
+            <div class="form-group">
+                <label for="passport_gender">Giới tính</label>
+                <select id="passport_gender" name="passport_gender" class="form-control" required>
+                    <option value="male">Nam</option>
+                    <option value="female">Nữ</option>
+                    <option value="other">Khác</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="passport_nationality">Quốc tịch</label>
+                <input type="text" id="passport_nationality" name="passport_nationality" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="passport_ethnicity">Dân tộc</label>
+                <input type="text" id="passport_ethnicity" name="passport_ethnicity" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="passport_religion">Tôn giáo</label>
+                <input type="text" id="passport_religion" name="passport_religion" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="passport_address">Địa chỉ thường trú</label>
+                <input type="text" id="passport_address" name="passport_address" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="passport_temp_address">Địa chỉ tạm trú</label>
+                <input type="text" id="passport_temp_address" name="passport_temp_address" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="passport_occupation">Nghề nghiệp</label>
+                <input type="text" id="passport_occupation" name="passport_occupation" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="passport_employer">Tên và địa chỉ cơ quan</label>
+                <input type="text" id="passport_employer" name="passport_employer" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="passport_father_name">Họ tên Cha</label>
+                <input type="text" id="passport_father_name" name="passport_father_name" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="passport_mother_name">Họ tên Mẹ</label>
+                <input type="text" id="passport_mother_name" name="passport_mother_name" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="passport_spouse_name">Họ tên Vợ/Chồng</label>
+                <input type="text" id="passport_spouse_name" name="passport_spouse_name" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="passport_old_passport">Hộ chiếu phổ thông lần gần nhất</label>
+                <input type="text" id="passport_old_passport" name="passport_old_passport" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="passport_content">Nội dung đề nghị</label>
+                <input type="text" id="passport_content" name="passport_content" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="sender">Số CCCD</label>
+                <input type="text" id="sender" name="sender" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="passport_phone">Số điện thoại liên hệ</label>
+                <input type="text" id="passport_phone" name="passport_phone" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="passport_email">Email liên hệ</label>
+                <input type="email" id="passport_email" name="passport_email" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="receiving_agency">Cơ quan tiếp nhận</label>
+                <input type="text" id="receiving_agency" name="receiving_agency" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Submit</button>
+        </form>
     </div>
-    <!-- Bootstrap JS and dependencies -->
+
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
+
 </html>

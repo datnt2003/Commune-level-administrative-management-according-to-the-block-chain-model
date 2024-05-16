@@ -1,19 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Đăng ký CCCD</title>
-    <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 </head>
+
 <body>
     <div class="container mt-5">
         <div class="row justify-content-center">
             <div class="col-md-8">
                 <div class="card">
                     <div class="card-header bg-primary text-white">
-                        <h3 class="card-title mb-0">CCCD Details</h3>
+                        <h3 class="card-title mb-0">Thông tin đăng ký CCCD</h3>
                     </div>
                     <div class="card-body">
                         <form method="POST" action="{{ url_for('new_cccd_transaction') }}">
@@ -23,23 +24,49 @@
                             </div>
                             <div class="form-group">
                                 <label for="date_of_birth">Ngày tháng năm sinh</label>
-                                <input type="date" id="date_of_birth" name="date_of_birth" class="form-control" required>
+                                <input type="date" id="date_of_birth" name="date_of_birth" class="form-control"
+                                    required>
                             </div>
                             <div class="form-group">
                                 <label for="address">Địa chỉ</label>
                                 <input type="text" id="address" name="address" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label for="cccd_number">CCCD Number</label>
-                                <input type="text" id="cccd_number" name="cccd_number" class="form-control" required>
+                                <label for="gender">Giới tính</label>
+                                <select id="gender" name="gender" class="form-control" required>
+                                    <option value="">Chọn giới tính</option>
+                                    <option value="male">Nam</option>
+                                    <option value="female">Nữ</option>
+                                    <option value="other">Khác</option>
+                                </select>
                             </div>
                             <div class="form-group">
-                                <label for="sender">Sender</label>
-                                <input type="text" id="sender" name="sender" class="form-control" required>
+                                <label for="phone">Số điện thoại</label>
+                                <input type="text" id="phone" name="phone" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label for="recipient">Recipient</label>
-                                <input type="text" id="recipient" name="recipient" class="form-control" required>
+                                <label for="receiving_agency">Cơ quan tiếp nhận</label>
+                                <input type="text" id="receiving_agency" name="receiving_agency" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="request">Yêu Cầu</label>
+                                <input type="text" id="request" name="request" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="nationality">Quốc tịch</label>
+                                <input type="text" id="nationality" name="nationality" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="religion">Tôn giáo</label>
+                                <input type="text" id="religion" name="religion" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="ethnicity">Dân tộc</label>
+                                <input type="text" id="ethnicity" name="ethnicity" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="cccd_number">Số CCCD hoặc CMND cũ</label>
+                                <input type="text" id="cccd_number" name="cccd_number" class="form-control">
                             </div>
                             <button type="submit" class="btn btn-primary btn-block">Submit</button>
                         </form>
@@ -48,9 +75,9 @@
             </div>
         </div>
     </div>
-    <!-- Bootstrap JS and dependencies -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
+
 </html>

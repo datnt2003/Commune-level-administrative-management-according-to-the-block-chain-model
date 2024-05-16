@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,78 +11,86 @@
         body {
             background-color: #f8f9fa;
         }
+
         .container {
             margin-top: 50px;
         }
+
         .card {
             margin-bottom: 20px;
         }
+
         .transaction-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
+
         .btn-create {
             margin-bottom: 20px;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1 class="mb-4">Giao dịch của người dùng</h1>
-        
+
         <div class="transaction-header">
             <h2>Giao dịch được phê duyệt</h2>
             <a href="{{ url_for('new_cccd_transaction') }}" class="btn btn-primary btn-create">Tạo mới CCCD</a>
         </div>
-        
+
         {% if approved_transactions %}
-            {% for block in approved_transactions %}
-                <div class="card">
-                    <div class="card-header">
-                        Số khối: {{ block.index }} - Thời gian: {{ block.timestamp|date('%Y-%m-%d %H:%M:%S') }}
-                    </div>
+        {% for block in approved_transactions %}
+        <div class="card">
+            <div class="card-header">
+                Số khối: {{ block.index }} - Thời gian: {{ block.timestamp|date('%Y-%m-%d %H:%M:%S') }}
+            </div>
+            <div class="card-body">
+                {% for tx in block.transactions %}
+                <div class="card mb-3">
                     <div class="card-body">
-                        {% for tx in block.transactions %}
-                            <div class="card mb-3">
-                                <div class="card-body">
-                                    <p class="card-text">
-                                        <strong>Người gửi:</strong> {{ tx.sender }}<br>
-                                        <strong>Người nhận:</strong> {{ tx.recipient }}<br>
-                                        <strong>Thông tin CCCD:</strong> {{ tx.cccd_details }}<br>
-                                        <strong>Thông tin Hộ Chiếu:</strong> {{ tx.passport_details }}<br>
-                                    </p>
-                                </div>
-                            </div>
-                        {% endfor %}
+                        <p class="card-text">
+                            <strong>Người gửi:</strong> {{ tx.sender }}<br>
+                            <strong>Người nhận:</strong> {{ tx.recipient }}<br>
+                            <strong>Thông tin CCCD:</strong> {{ tx.cccd_details }}<br>
+                            <strong>Thông tin Hộ Chiếu:</strong> {{ tx.passport_details }}<br>
+                        </p>
                     </div>
                 </div>
-            {% endfor %}
-        {% else %}
-            <p>Không tìm thấy giao dịch đã phê duyệt.</p>
-        {% endif %}
-        
-        <h2 class="mt-5">Giao dịch đang chờ xử lý</h2>
-        {% if pending_transactions %}
-            <div class="card-deck">
-                {% for tx in pending_transactions %}
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">ID Giao dịch đang chờ xử lý: {{ tx.id }}</h5>
-                            <p class="card-text">
-                                <strong>Người gửi:</strong> {{ tx.sender }}<br>
-                                <strong>Người nhận:</strong> {{ tx.recipient }}<br>
-                                <strong>Thông tin CCCD:</strong> {{ tx.cccd_details }}<br>
-                                <strong>Thông tin Hộ Chiếu:</strong> {{ tx.passport_details }}<br>
-                                <strong>Thời gian:</strong> {{ tx.timestamp|date('%Y-%m-%d %H:%M:%S') }}
-                            </p>
-                        </div>
-                    </div>
                 {% endfor %}
             </div>
+        </div>
+        {% endfor %}
         {% else %}
-            <p>Không tìm thấy giao dịch đang chờ xử lý.</p>
+        <p>Không tìm thấy giao dịch đã phê duyệt.</p>
         {% endif %}
+
+        <h2 class="mt-5">Giao dịch đang chờ xử lý</h2>
+        {% if pending_transactions %}
+        <div class="card-deck">
+            {% for tx in pending_transactions %}
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">ID Giao dịch đang chờ xử lý: {{ tx.id }}</h5>
+                    <p class="card-text">
+                        <strong>Người gửi:</strong> {{ tx.sender }}<br>
+                        <strong>Người nhận:</strong> {{ tx.recipient }}<br>
+                        <strong>Thông tin CCCD:</strong> {{ tx.cccd_details }}<br>
+                        <strong>Thông tin Hộ Chiếu:</strong> {{ tx.passport_details }}<br>
+                        <strong>Thời gian:</strong> {{ tx.timestamp|date('%Y-%m-%d %H:%M:%S') }}
+                    </p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p>Không tìm thấy giao dịch đang chờ xử lý.</p>
+        {% endif %}
+
+        <!-- Nút quay lại trang chủ -->
+        <a href="{{ url_for('home') }}" class="btn btn-secondary mt-4">Quay lại trang chủ</a>
     </div>
 
     <!-- Bootstrap JS and dependencies -->
@@ -89,4 +98,5 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@1.16.0/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
+
 </html>

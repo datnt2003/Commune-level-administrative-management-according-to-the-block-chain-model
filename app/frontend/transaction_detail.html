@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Chi Tiết Giao Dịch{% endblock %}
+
+{% block content %}
+<h2>Chi Tiết Hồ Sơ</h2>
+<div class="card mb-3">
+    <div class="card-body">
+        <h5 class="card-title">Hồ sơ số {{ transaction.id }}</h5>
+        <p class="card-text"><strong>Người Gửi:</strong> {{ transaction.sender }}</p>
+        <p class="card-text"><strong>Người Nhận:</strong> {{ transaction.recipient }}</p>
+        <p class="card-text"><strong>Thời Gian:</strong> {{ transaction.timestamp }}</p>
+
+        {% if transaction.cccd_details %}
+        <h5>Chi Tiết CCCD:</h5>
+        {% for key, value in transaction.cccd_details.items() %}
+        <p class="card-text"><strong>{{ key.replace('_', ' ').title() }}:</strong> {{ value }}</p>
+        {% endfor %}
+        {% endif %}
+
+        {% if transaction.passport_details %}
+        <h5>Chi Tiết Hộ Chiếu:</h5>
+        {% for key, value in transaction.passport_details.items() %}
+        <p class="card-text"><strong>{{ key.replace('_', ' ').title() }}:</strong> {{ value }}</p>
+        {% endfor %}
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

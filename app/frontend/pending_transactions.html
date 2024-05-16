@@ -1,26 +1,43 @@
 {% extends "base.html" %}
 
-{% block title %}Pending Transactions{% endblock %}
+{% block title %}Giao Dịch Đang Chờ{% endblock %}
 
 {% block content %}
-<h2>Pending Transactions</h2>
+<h2>Giao Dịch Đang Chờ</h2>
+
+<!-- Form lọc giao dịch -->
+<form method="get" class="mb-4">
+    <div class="form-group">
+        <label for="filter">Lọc theo:</label>
+        <select id="filter" name="filter" class="form-control" onchange="this.form.submit()">
+            <option value="all" {% if filter_type=='all' %}selected{% endif %}>Tất cả</option>
+            <option value="cccd" {% if filter_type=='cccd' %}selected{% endif %}>CCCD</option>
+            <option value="passport" {% if filter_type=='passport' %}selected{% endif %}>Hộ chiếu</option>
+        </select>
+    </div>
+</form>
+
 <form method="POST">
     {% for transaction in transactions %}
     <div class="card mb-3">
         <div class="card-body">
-            <h5 class="card-title">Transaction {{ transaction.id }}</h5>
-            <p class="card-text">Sender: {{ transaction.sender }}</p>
-            <p class="card-text">Recipient: {{ transaction.recipient }}</p>
+            <h5 class="card-title">Hồ sơ số {{ transaction.id }}</h5>
+            <p class="card-text">Người Gửi: {{ transaction.sender }}</p>
+            <p class="card-text">Người Nhận: {{ transaction.recipient }}</p>
             {% if transaction.cccd_details %}
-                <p class="card-text">CCCD Details: {{ transaction.cccd_details | tojson }}</p>
+            <p class="card-text">Chi Tiết CCCD: <a
+                    href="{{ url_for('transaction_detail', type_data='pending', tx_id=transaction.id) }}">Xem Chi
+                    Tiết</a></p>
             {% endif %}
 
             {% if transaction.passport_details %}
-                <p class="card-text">Passport Details: {{ transaction.passport_details | tojson }}</p>
+            <p class="card-text">Chi Tiết Hộ Chiếu: <a
+                    href="{{ url_for('transaction_detail', type_data='pending', tx_id=transaction.id) }}">Xem Chi
+                    Tiết</a></p>
             {% endif %}
-            <p class="card-text">Timestamp: {{ transaction.timestamp }}</p>
-            <button type="submit" name="action" value="approve" class="btn btn-success">Approve</button>
-            <button type="submit" name="action" value="reject" class="btn btn-danger">Reject</button>
+            <p class="card-text">Thời Gian: {{ transaction.timestamp }}</p>
+            <button type="submit" name="action" value="approve" class="btn btn-success">Phê Duyệt</button>
+            <button type="submit" name="action" value="reject" class="btn btn-danger">Từ Chối</button>
             <input type="hidden" name="tx_id" value="{{ transaction.id }}">
         </div>
     </div>

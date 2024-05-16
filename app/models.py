@@ -12,11 +12,19 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+    fullname = db.Column(db.String(150), nullable=True)
+    date_of_birth = db.Column(db.Date, nullable=True)
+    phone = db.Column(db.String(15), nullable=True, unique=True)
+    gender = db.Column(db.String(10), nullable=True)
 
-    def __init__(self, username, password_hash, is_admin=False):
-        self.username = username
-        self.password_hash = password_hash
-        self.is_admin = is_admin
+    # def __init__(self, username, password_hash, fullname, date_of_birth, phone, gender, is_admin=False):
+    #     self.username = username
+    #     self.password_hash = password_hash
+    #     self.fullname = fullname
+    #     self.date_of_birth = date_of_birth
+    #     self.phone = phone
+    #     self.gender = gender
+    #     self.is_admin = is_admin
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -38,6 +46,30 @@ class User(UserMixin, db.Model):
 
     def set_is_admin(self, is_admin):
         self.is_admin = is_admin
+
+    def get_fullname(self):
+        return self.fullname
+
+    def set_fullname(self, fullname):
+        self.fullname = fullname
+
+    def get_date_of_birth(self):
+        return self.date_of_birth
+
+    def set_date_of_birth(self, date_of_birth):
+        self.date_of_birth = date_of_birth
+
+    def get_phone(self):
+        return self.phone
+
+    def set_phone(self, phone):
+        self.phone = phone
+
+    def get_gender(self):
+        return self.gender
+
+    def set_gender(self, gender):
+        self.gender = gender
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -88,6 +120,7 @@ class Transaction(db.Model):
     recipient = db.Column(db.String(80), nullable=False)
     cccd_details = db.Column(db.Text, nullable=True)
     passport_details = db.Column(db.Text, nullable=True)
+    timestamp = db.Column(db.Float, default=time, nullable=False)
     block_id = db.Column(db.Integer, db.ForeignKey('block.id'), nullable=False)
     block = db.relationship('Block', backref=db.backref('transactions_list', lazy=True))
 
@@ -177,7 +210,7 @@ class News(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    author = block_id = db.Column(db.String(80), db.ForeignKey('User.username'), nullable=False)
+    author = db.Column(db.String(80), db.ForeignKey('user.username'), nullable=False)
     timestamp = db.Column(db.Float, nullable=False)
 
     def get_id(self):
@@ -245,7 +278,10 @@ class Blockchain:
             new_transaction = Transaction(sender=tx['sender'], recipient=tx['recipient'],
                                           cccd_details=json.dumps(tx['cccd_details']) if tx['cccd_details'] else None,
                                           passport_details=json.dumps(tx['passport_details']) if tx['passport_details'] else None,
-                                          block_id=new_block.id)
+                                          block_id=new_block.id,
+                                          timestamp = tx['timestamp']
+                                          
+                                          )
             db.session.add(new_transaction)
 
         db.session.commit()
@@ -253,12 +289,13 @@ class Blockchain:
         self.chain.append(block)
         return block
 
-    def new_transaction(self, sender, recipient, cccd_details=None, passport_details=None):
+    def new_transaction(self, sender, recipient, cccd_details=None, passport_details=None, timestamp = None):
         self.current_transactions.append({
             'sender': sender,
             'recipient': recipient,
             'cccd_details': cccd_details,
-            'passport_details': passport_details
+            'passport_details': passport_details, 
+            'timestamp': timestamp
         })
         return self.last_block['index'] + 1
 
