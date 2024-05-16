@@ -1,35 +1,17 @@
 from flask import Flask, jsonify, request, render_template, redirect, url_for, flash, abort
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from time import time
 from functools import wraps
-import hashlib
 import json
-from sqlalchemy.engine.reflection import Inspector
 from datetime import datetime
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-
-app = Flask(__name__, template_folder='frontend')
-app.config['SECRET_KEY'] = 'a'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blockchain.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = 'login'
-
-def your_date_filter_function(value, format='%Y-%m-%d %H:%M:%S'):
-    date = datetime.fromtimestamp(value)
-    return date.strftime(format)
-
-app.jinja_env.filters['date'] = your_date_filter_function
-
+from .models import User, Block, Transaction, PendingTransaction, News
+from . import app, db, login_manager, blockchain
 def admin_required(func):
     @wraps(func)
     def decorated_function(*args, **kwargs):
@@ -37,126 +19,6 @@ def admin_required(func):
             abort(403)  # Forbidden
         return func(*args, **kwargs)
     return decorated_function
-
-# Models
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
-    is_admin = db.Column(db.Boolean, default=False)
-
-    def __init__(self, username, password_hash, is_admin=False):
-        self.username = username
-        self.password_hash = password_hash
-        self.is_admin = is_admin
-
-class Block(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    index = db.Column(db.Integer, nullable=False)
-    timestamp = db.Column(db.Float, nullable=False)
-    transaction_data = db.Column(db.Text, nullable=False)
-    proof = db.Column(db.Integer, nullable=False)
-    previous_hash = db.Column(db.String(64), nullable=False)
-
-class Transaction(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    sender = db.Column(db.String(80), nullable=False)
-    recipient = db.Column(db.String(80), nullable=False)
-    cccd_details = db.Column(db.Text, nullable=True)
-    passport_details = db.Column(db.Text, nullable=True)
-    block_id = db.Column(db.Integer, db.ForeignKey('block.id'), nullable=False)
-    block = db.relationship('Block', backref=db.backref('transactions_list', lazy=True))
-
-class PendingTransaction(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    sender = db.Column(db.String(80), nullable=False)
-    recipient = db.Column(db.String(80), nullable=False)
-    cccd_details = db.Column(db.Text, nullable=True)
-    passport_details = db.Column(db.Text, nullable=True)
-    timestamp = db.Column(db.Float, default=time, nullable=False)
-
-class News(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(255), nullable=False)
-    content = db.Column(db.Text, nullable=False)
-    author = db.Column(db.String(80), nullable=False)
-    timestamp = db.Column(db.Float, nullable=False)
-
-class Blockchain:
-    def __init__(self):
-        self.current_transactions = []
-        self.chain = []
-        self.load_chain()
-
-    def load_chain(self):
-        blocks = Block.query.order_by(Block.index).all()
-        for block in blocks:
-            self.chain.append({
-                'index': block.index,
-                'timestamp': block.timestamp,
-                'transactions': json.loads(block.transaction_data),
-                'proof': block.proof,
-                'previous_hash': block.previous_hash
-            })
-        if not self.chain:
-            self.new_block(previous_hash='1', proof=100)
-
-    def new_block(self, proof, previous_hash=None):
-        block = {
-            'index': len(self.chain) + 1,
-            'timestamp': time(),
-            'transactions': self.current_transactions,
-            'proof': proof,
-            'previous_hash': previous_hash or self.hash(self.chain[-1]),
-        }
-
-        new_block = Block(index=block['index'], timestamp=block['timestamp'],
-                          transaction_data=json.dumps(block['transactions']),
-                          proof=block['proof'], previous_hash=block['previous_hash'])
-        db.session.add(new_block)
-        db.session.commit()
-
-        for tx in self.current_transactions:
-            new_transaction = Transaction(sender=tx['sender'], recipient=tx['recipient'],
-                                          cccd_details=json.dumps(tx['cccd_details']) if tx['cccd_details'] else None,
-                                          passport_details=json.dumps(tx['passport_details']) if tx['passport_details'] else None,
-                                          block_id=new_block.id)
-            db.session.add(new_transaction)
-
-        db.session.commit()
-        self.current_transactions = []
-        self.chain.append(block)
-        return block
-
-    def new_transaction(self, sender, recipient, cccd_details=None, passport_details=None):
-        self.current_transactions.append({
-            'sender': sender,
-            'recipient': recipient,
-            'cccd_details': cccd_details,
-            'passport_details': passport_details
-        })
-        return self.last_block['index'] + 1
-
-    @staticmethod
-    def hash(block):
-        block_string = json.dumps(block, sort_keys=True).encode()
-        return hashlib.sha256(block_string).hexdigest()
-
-    @property
-    def last_block(self):
-        return self.chain[-1]
-
-    def proof_of_work(self, last_proof):
-        proof = 0
-        while not self.valid_proof(last_proof, proof):
-            proof += 1
-        return proof
-
-    @staticmethod
-    def valid_proof(last_proof, proof):
-        guess = f'{last_proof}{proof}'.encode()
-        guess_hash = hashlib.sha256(guess).hexdigest()
-        return guess_hash[:4] == "0000"
 
 # User loader
 @login_manager.user_loader
@@ -317,49 +179,65 @@ def view_pending_transactions():
 @app.route('/transactions/user', methods=['GET'])
 @login_required
 def user_transactions():
-    approved_transactions = []
-    user_blocks = Block.query.join(Transaction).filter(
-        (Transaction.sender == current_user.username) | (Transaction.recipient == current_user.username)
-    ).all()
-
-    for block in user_blocks:
-        block_transactions = []
-        transactions = Transaction.query.filter_by(block_id=block.id).filter(
+    if not current_user.is_admin:
+        
+        approved_transactions = []
+        user_blocks = Block.query.join(Transaction).filter(
             (Transaction.sender == current_user.username) | (Transaction.recipient == current_user.username)
         ).all()
-        for tx in transactions:
-            block_transactions.append({
+
+        for block in user_blocks:
+            block_transactions = []
+            transactions = Transaction.query.filter_by(block_id=block.id).filter(
+                (Transaction.sender == current_user.username) | (Transaction.recipient == current_user.username)
+            ).all()
+            for tx in transactions:
+                block_transactions.append({
+                    'id': tx.id,
+                    'sender': tx.sender,
+                    'recipient': tx.recipient,
+                    'cccd_details': json.loads(tx.cccd_details) if tx.cccd_details else None,
+                    'passport_details': json.loads(tx.passport_details) if tx.passport_details else None
+                })
+            approved_transactions.append({
+                'index': block.index,
+                'timestamp': block.timestamp,
+                'transactions': block_transactions
+            })
+
+        pending_transactions = []
+        user_pending = PendingTransaction.query.filter(
+            (PendingTransaction.sender == current_user.username) | (PendingTransaction.recipient == current_user.username)
+        ).all()
+
+        for tx in user_pending:
+            pending_transactions.append({
                 'id': tx.id,
                 'sender': tx.sender,
                 'recipient': tx.recipient,
                 'cccd_details': json.loads(tx.cccd_details) if tx.cccd_details else None,
-                'passport_details': json.loads(tx.passport_details) if tx.passport_details else None
+                'passport_details': json.loads(tx.passport_details) if tx.passport_details else None,
+                'timestamp': tx.timestamp
             })
-        approved_transactions.append({
-            'index': block.index,
-            'timestamp': block.timestamp,
-            'transactions': block_transactions
-        })
 
-    pending_transactions = []
-    user_pending = PendingTransaction.query.filter(
-        (PendingTransaction.sender == current_user.username) | (PendingTransaction.recipient == current_user.username)
-    ).all()
-
-    for tx in user_pending:
-        pending_transactions.append({
-            'id': tx.id,
-            'sender': tx.sender,
-            'recipient': tx.recipient,
-            'cccd_details': json.loads(tx.cccd_details) if tx.cccd_details else None,
-            'passport_details': json.loads(tx.passport_details) if tx.passport_details else None,
-            'timestamp': tx.timestamp
-        })
-
-    return render_template('user_transactions.html',
-                           approved_transactions=approved_transactions,
-                           pending_transactions=pending_transactions)
-
+        return render_template('user_transactions.html',
+                            approved_transactions=approved_transactions,
+                            pending_transactions=pending_transactions)
+    else:
+        all_transactions = []
+        blocks = Block.query.all()
+        for block in blocks:
+            transactions = Transaction.query.filter_by(block_id=block.id).all()
+            for tx in transactions:
+                all_transactions.append({
+                    'sender': tx.sender,
+                    'recipient': tx.recipient,
+                    'cccd_details': json.loads(tx.cccd_details) if tx.cccd_details else None,
+                    'passport_details': json.loads(tx.passport_details) if tx.passport_details else None,
+                    'block_index': block.index,
+                    'timestamp': block.timestamp
+                })
+        return render_template('all_transactions.html', transactions=all_transactions)
 
 @app.route('/transactions/all', methods=['GET'])
 @login_required
@@ -463,22 +341,3 @@ def search_transactions():
 
     return render_template('search_results.html', approved_transactions=approved_transactions, query=query)
 
-if __name__ == '__main__':
-    with app.app_context():
-        db.drop_all()
-        db.create_all()
-        engine = db.engine
-        inspector = Inspector.from_engine(engine)
-        if inspector.has_table('block'):
-            db.create_all()
-
-        admin_user = User.query.filter_by(username='admin').first()
-        if not admin_user:
-            hashed_password = generate_password_hash('admin', method='pbkdf2:sha256')
-            admin_user = User(username='admin', password_hash=hashed_password, is_admin=True)
-            db.session.add(admin_user)
-            db.session.commit()
-
-        blockchain = Blockchain()
-
-    app.run(host='0.0.0.0', port=5001, debug=True)
