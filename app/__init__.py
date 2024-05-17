@@ -24,7 +24,7 @@ def your_date_filter_function(value, format='%Y-%m-%d %H:%M:%S'):
 app.jinja_env.filters['date'] = your_date_filter_function
 from .models import *
 with app.app_context():
-    db.drop_all()
+    # db.drop_all()
     db.create_all()
     engine = db.engine
     inspector = Inspector.from_engine(engine)

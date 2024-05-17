@@ -116,7 +116,7 @@ class Block(db.Model):
 
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    sender = db.Column(db.String(80), nullable=False)
+    sender = db.Column(db.String(80), db.ForeignKey('user.username'), nullable=False)
     recipient = db.Column(db.String(80), nullable=False)
     cccd_details = db.Column(db.Text, nullable=True)
     passport_details = db.Column(db.Text, nullable=True)
@@ -163,7 +163,7 @@ class Transaction(db.Model):
 
 class PendingTransaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    sender = db.Column(db.String(80), nullable=False)
+    sender = db.Column(db.String(80), db.ForeignKey('user.username'), nullable=False)
     recipient = db.Column(db.String(80), nullable=False)
     cccd_details = db.Column(db.Text, nullable=True)
     passport_details = db.Column(db.Text, nullable=True)

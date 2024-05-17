@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giao dịch của người dùng</title>
+    <title>Hồ sơ của người dùng</title>
     <!-- Bootstrap CSS -->
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
@@ -34,10 +34,10 @@
 
 <body>
     <div class="container">
-        <h1 class="mb-4">Giao dịch của người dùng</h1>
+        <h1 class="mb-4">Hồ sơ của người dùng</h1>
 
         <div class="transaction-header">
-            <h2>Giao dịch được phê duyệt</h2>
+            <h2>Hồ sơ được phê duyệt</h2>
             <a href="{{ url_for('new_cccd_transaction') }}" class="btn btn-primary btn-create">Tạo mới CCCD</a>
         </div>
 
@@ -54,8 +54,22 @@
                         <p class="card-text">
                             <strong>Người gửi:</strong> {{ tx.sender }}<br>
                             <strong>Người nhận:</strong> {{ tx.recipient }}<br>
-                            <strong>Thông tin CCCD:</strong> {{ tx.cccd_details }}<br>
-                            <strong>Thông tin Hộ Chiếu:</strong> {{ tx.passport_details }}<br>
+                            {% if tx.cccd_details %}
+                            <strong>
+                                <p class="card-text">Chi Tiết CCCD: <a
+                                        href="{{ url_for('transaction_detail', type_data='accept', tx_id=tx.id) }}">Xem Chi
+                                        Tiết</a></p>
+                            </strong><br>
+                            {% endif %}
+                            
+                            {% if tx.passport_details %}
+                            <strong>
+                                <p class="card-text">Chi Tiết hộ chiếu: <a
+                                        href="{{ url_for('transaction_detail', type_data='accept', tx_id=tx.id) }}">Xem Chi
+                                        Tiết</a></p>
+                            </strong><br>
+                            {% endif %}
+                         
                         </p>
                     </div>
                 </div>
@@ -64,21 +78,33 @@
         </div>
         {% endfor %}
         {% else %}
-        <p>Không tìm thấy giao dịch đã phê duyệt.</p>
+        <p>Không tìm thấy hồ sơ đã phê duyệt.</p>
         {% endif %}
 
-        <h2 class="mt-5">Giao dịch đang chờ xử lý</h2>
+        <h2 class="mt-5">Hồ sơ đang chờ xử lý</h2>
         {% if pending_transactions %}
         <div class="card-deck">
             {% for tx in pending_transactions %}
             <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">ID Giao dịch đang chờ xử lý: {{ tx.id }}</h5>
+                    <h5 class="card-title">ID hồ sơ đang chờ xử lý: {{ tx.id }}</h5>
                     <p class="card-text">
                         <strong>Người gửi:</strong> {{ tx.sender }}<br>
                         <strong>Người nhận:</strong> {{ tx.recipient }}<br>
-                        <strong>Thông tin CCCD:</strong> {{ tx.cccd_details }}<br>
-                        <strong>Thông tin Hộ Chiếu:</strong> {{ tx.passport_details }}<br>
+                        {% if tx.cccd_details %}
+                        <strong> <p class="card-text">Chi Tiết CCCD: <a
+                                href="{{ url_for('transaction_detail', type_data='pending', tx_id=tx.id) }}">Xem Chi
+                                Tiết</a></p> </strong><br>
+                        {% endif %} 
+
+                        {% if tx.passport_details %}
+                        <strong>
+                            <p class="card-text">Chi Tiết hộ chiếu: <a
+                                    href="{{ url_for('transaction_detail', type_data='pending', tx_id=tx.id) }}">Xem Chi
+                                    Tiết</a></p>
+                        </strong><br>
+                        {% endif %}
+
                         <strong>Thời gian:</strong> {{ tx.timestamp|date('%Y-%m-%d %H:%M:%S') }}
                     </p>
                 </div>
@@ -86,7 +112,7 @@
             {% endfor %}
         </div>
         {% else %}
-        <p>Không tìm thấy giao dịch đang chờ xử lý.</p>
+        <p>Không tìm thấy hồ sơ đang chờ xử lý.</p>
         {% endif %}
 
         <!-- Nút quay lại trang chủ -->
